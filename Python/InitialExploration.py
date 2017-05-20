@@ -10,6 +10,15 @@ from collections import Counter
 #Importing the dataset
 LendingClub0711 = pd.read_csv("/Users/ejenvey/Desktop/Lending Club Data and Analysis/LoanStats_2007-11.csv")
 
+#Null handling
+nulls = LendingClub0711.isnull().sum().sort_values(ascending=False)[:25]
+nulls.columns = ['Null Count']
+nulls.index.name = 'Feature'
+nulls
+
+#Remove completely null columns
+
+
 #Remove columns with little-to-no information
 
 noInfoColumns = []
@@ -72,8 +81,23 @@ LendingClub0711['int_rate'] = LendingClub0711['int_rate'].astype('float64')
 LendingClub0711['loan_amnt'] = LendingClub0711['int_rate'].astype('float64')
 LendingClub0711['installment'] = LendingClub0711['installment'].astype('float64')
 LendingClub0711['annual_inc'] = LendingClub0711['annual_inc'].astype('float64')
-LendingClub0711['payment_inc_ratio'] = LendingClub0711['payment_inc_ratio'].astype('float64')
+#LendingClub0711['payment_inc_ratio'] = LendingClub0711['payment_inc_ratio'].astype('float64')
 LendingClub0711['dti'] = LendingClub0711['dti'].astype('float64')
+
+#select only the numeric features, for numeric plotting and PCA
+numeric_features = LendingClub0711.select_dtypes(include=[np.number])
+
+#select only the non-numeric features
+categoricals = LendingClub0711.select_dtypes(exclude=[np.number])
+categoricals.describe()
+
+#one-hot encoding
+LendingClub0711['enc_purpose'] = pd.get_dummies(LendingClub0711.purpose, drop_first=True)
+###Insert other columns here
+
+#correlations among the numeric features in the dataset
+corr = numeric_features.corr()
+
 
 X_pca = LendingClub0711.loc[:,['loan_amnt', 'installment', 'int_rate', 'annual_inc',
                                'dti']]
