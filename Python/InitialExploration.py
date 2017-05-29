@@ -6,185 +6,180 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.decomposition import PCA
 from collections import Counter
+import seaborn as sns
+from matplotlib.mlab import PCA
+import statsmodels.api as sm
+import pylab as pl
 
 #Importing the dataset
-LendingClub0711 = pd.read_csv("/Users/ejenvey/Desktop/Lending Club Data and Analysis/LoanStats_2007-11.csv")
+LendingClub = pd.read_csv("/Users/ejenvey/Desktop/Lending Club Data and Analysis/LoanStats_keycols_cleaned.csv")
 
-#Null handling
-nulls = LendingClub0711.isnull().sum().sort_values(ascending=False)[:25]
-nulls.columns = ['Null Count']
-nulls.index.name = 'Feature'
-nulls
+#------Data Exploration---------#
 
-#Remove completely null columns
-
-
-#Remove columns with little-to-no information
-
-noInfoColumns = []
-
-for i in range(len(LendingClub0711.columns)):
-    if len(LendingClub0711.iloc[:,i].unique()) == 1:
-        noInfoColumns.append(i)
-
-infoColumns = [item for item in range(len(LendingClub0711)) if item not in noInfoColumns and item <111]
-
-LendingClub0711 = LendingClub0711.iloc[:,infoColumns]
-
-#Check summary level information for dataset
-LendingClub0711.describe()
-
-LendingClub0711.chargeoff_within_12_mths.unique()
-
-#------Data Cleaning/Preprocessing---------
-#Create the dependent variable column, bad_loans, where 1 is a Charged Off or Defaulted Loan, and
-#1 is a good loan, being paid off
-LendingClub0711['bad_loans'] = LendingClub0711.apply(lambda row: 1 if row['loan_status'] == 'Charged Off' or row['loan_status'] == 'Default' else 0, axis=1)
-
-#Subset the data to ONLY those loans that are no longer active
-##Create the inactive flag
-LendingClub0711['inactive'] = LendingClub0711.apply(lambda row: 1 if row['loan_status'] == 'Fully Paid' or row['loan_status'] == 'Charged Off' or row['loan_status'] == 'Default' else 0, axis=1)
-##Filter on the inactive flag
-LendingClub0711 = LendingClub0711[LendingClub0711['inactive']==1]
+print LendingClub.describe()
+print LendingClub.std()
 
 #Explore the target variable (bad_loans)
-LendingClub0711.bad_loans.describe()
+LendingClub.groupby('bad_loans').mean() 
+#above shows a higher loan amount, higher interest rate, lower annual income, lower grade, 
+#longer term, renting a house seem to correlate with a bad loan
 
-#Convert target to Category datatype
-LendingClub0711['bad_loans'] = LendingClub0711['bad_loans'].astype('category')
-LendingClub0711.bad_loans.describe()
-
-#Other Data type conversions and data preprocessing
-LendingClub0711['term'] = LendingClub0711['term'].astype('category')
-LendingClub0711['id'] = LendingClub0711['id'].astype('category')
-LendingClub0711['grade'] = LendingClub0711['grade'].astype('category')
-LendingClub0711['sub_grade'] = LendingClub0711['sub_grade'].astype('category')
-LendingClub0711['emp_length'] = LendingClub0711['emp_length'].astype('category')
-LendingClub0711['home_ownership'] = LendingClub0711['home_ownership'].astype('category')
-LendingClub0711['verification_status'] = LendingClub0711['verification_status'].astype('category')
-LendingClub0711['loan_status'] = LendingClub0711['loan_status'].astype('category')
-LendingClub0711['purpose'] = LendingClub0711['purpose'].astype('category')
-LendingClub0711['title'] = LendingClub0711['title'].astype('category')
-LendingClub0711['addr_state'] = LendingClub0711['addr_state'].astype('category')
-LendingClub0711['policy_code'] = LendingClub0711['policy_code'].astype('category')
-LendingClub0711['application_type'] = LendingClub0711['application_type'].astype('category')
-LendingClub0711['acc_now_delinq'] = LendingClub0711['acc_now_delinq'].astype('category')
-LendingClub0711['addr_state'] = LendingClub0711['addr_state'].astype('category')
-LendingClub0711['chargeoff_within_12_mths'] = LendingClub0711['chargeoff_within_12_mths'].astype('category')
-LendingClub0711['delinq_amnt'] = LendingClub0711['delinq_amnt'].astype('category')
-#LendingClub0711['pub_rec_bankruptcies'] = LendingClub0711['pub_rec_bankruptices'].astype('category')
-LendingClub0711['tax_liens'] = LendingClub0711['tax_liens'].astype('category')
-LendingClub0711['inactive'] = LendingClub0711['inactive'].astype('category')
-
-LendingClub0711['int_rate'] = LendingClub0711['int_rate'].apply(lambda x: x.strip('%'))
-LendingClub0711['int_rate'] = LendingClub0711['int_rate'].astype('float64')
-LendingClub0711['loan_amnt'] = LendingClub0711['int_rate'].astype('float64')
-LendingClub0711['installment'] = LendingClub0711['installment'].astype('float64')
-LendingClub0711['annual_inc'] = LendingClub0711['annual_inc'].astype('float64')
-#LendingClub0711['payment_inc_ratio'] = LendingClub0711['payment_inc_ratio'].astype('float64')
-LendingClub0711['dti'] = LendingClub0711['dti'].astype('float64')
-
-#select only the numeric features, for numeric plotting and PCA
-numeric_features = LendingClub0711.select_dtypes(include=[np.number])
-
-#select only the non-numeric features
-categoricals = LendingClub0711.select_dtypes(exclude=[np.number])
-categoricals.describe()
-
-#one-hot encoding
-LendingClub0711['enc_purpose'] = pd.get_dummies(LendingClub0711.purpose, drop_first=True)
-###Insert other columns here
-
-#correlations among the numeric features in the dataset
-corr = numeric_features.corr()
+#correlations among the numeric features in the dataset, plot the correlation matrix
+corr = LendingClub.corr()
+sns.heatmap(corr, xticklabels=corr.columns,yticklabels=corr.columns)
+#highlights: number of open accounts is correlated with acc_open_past_24_mths
+#also, credit limit is correlated with annual income & revolving balance
 
 
-X_pca = LendingClub0711.loc[:,['loan_amnt', 'installment', 'int_rate', 'annual_inc',
+
+X_pca = LendingClub.loc[:,['loan_amnt', 'installment', 'int_rate', 'annual_inc',
                                'dti']]
-y = LendingClub0711.bad_loans
+y = LendingClub.bad_loans
 
 #For some plots, split the data frame into bad loans and good loans
-LendingClub0711bad = LendingClub0711[LendingClub0711['bad_loans']==0]
-LendingClub0711good = LendingClub0711[LendingClub0711['bad_loans']==1]
+LendingClub0711bad = LendingClub[LendingClub['bad_loans']==0]
+LendingClub0711good = LendingClub[LendingClub['bad_loans']==1]
 
 #For plotting
 plt.style.use(style='ggplot')
 plt.rcParams['figure.figsize'] = (10, 6)
 
-#Exploratory Plotting
+#------Exploratory Plots---------#
+
+LendingClub.hist()
+plt.show()
 
 ##Numeric variables
-plt.hist(LendingClub0711.loan_amnt, color='blue')
+plt.hist(LendingClub.loan_amnt, color='blue')
 loan_fig = plt.figure()
 loan_ax = loan_fig.add_subplot(111)
 plt.show()
 
-plt.hist(LendingClub0711.int_rate, color='blue')
+plt.hist(LendingClub.int_rate, color='blue')
 plt.show()
 
 annualInc_fig = plt.figure()
 annualInc_ax = annualInc_fig.add_subplot(111)
-plt.hist(LendingClub0711.annual_inc, color='blue', bins=1000)
+plt.hist(LendingClub.annual_inc, color='blue', bins=1000)
 annualInc_ax.set_xlim([0,350000])
 plt.show()
 
-plt.hist(LendingClub0711.dti, color='blue', bins=40)
+plt.hist(LendingClub.dti, color='blue', bins=40)
 plt.show()
 
 ##Box Plots to see outliers for certain numeric variables
-plt.boxplot(LendingClub0711.loan_amnt)
+plt.boxplot(LendingClub.loan_amnt)
 
-plt.boxplot(LendingClub0711.int_rate)
+plt.boxplot(LendingClub.int_rate)
 
-plt.boxplot(LendingClub0711.dti)
+plt.boxplot(LendingClub.dti)
 
 ##Selected Categorical variables bar chart of # records per category
-termCounter = Counter(LendingClub0711.term)
+termCounter = Counter(LendingClub.term)
 plt.bar(range(len(list(termCounter.keys()))),list(termCounter.values()), align='center')
 plt.xticks(range(len(list(termCounter.keys()))),list(termCounter.keys()))
 plt.show()
 
-c = Counter(LendingClub0711.grade)
+c = Counter(LendingClub.grade)
 plt.bar(range(len(list(c.keys()))),list(c.values()), align='center')
 plt.xticks(range(len(list(c.keys()))),list(c.keys()))
 plt.show()
 
-c = Counter(LendingClub0711.emp_length)
+c = Counter(LendingClub.emp_length)
 plt.bar(range(len(list(c.keys()))),list(c.values()), align='center')
 plt.xticks(range(len(list(c.keys()))),list(c.keys()))
 plt.show()
 
-c = Counter(LendingClub0711.home_ownership)
+c = Counter(LendingClub.home_ownership)
 plt.bar(range(len(list(c.keys()))),list(c.values()), align='center')
 plt.xticks(range(len(list(c.keys()))),list(c.keys()))
 plt.show()
 
 ##Plot the target variable
-c = Counter(LendingClub0711.bad_loans)
+c = Counter(LendingClub.bad_loans)
 plt.bar(range(len(list(c.keys()))),list(c.values()), align='center')
 plt.xticks(range(len(list(c.keys()))),list(c.keys()))
 plt.show()
 
-##Plot selected numeric and categorical variables against the target variable
-c = Counter(LendingClub0711.bad_loans)
-plt.bar(range(len(list(c.keys()))),list(c.values()), align='center')
-plt.xticks(range(len(list(c.keys()))),list(c.keys()))
+##Same Categorical Variables with Loan Status included
+pd.crosstab(LendingClub.grade, LendingClub.bad_loans).plot(kind='bar')
+plt.title('Grade of Loan by Loan Status')
+plt.xlabel('Loan Grade')
+plt.ylabel('Frequency')
+
+pd.crosstab(LendingClub.term, LendingClub.bad_loans).plot(kind='bar')
+plt.title('Loan Term by Loan Status')
+plt.xlabel('Loan Term')
+plt.ylabel('Frequency')
+
+pd.crosstab(LendingClub.emp_length, LendingClub.bad_loans).plot(kind='bar')
+plt.title('Length of Current Employment by Loan Status')
+plt.xlabel('Length of Current Employment')
+plt.ylabel('Frequency')
+
+pd.crosstab(LendingClub.home_ownership, LendingClub.bad_loans).plot(kind='bar')
+plt.title('Home Ownership Status by Loan Status')
+plt.xlabel('Home Ownership Status')
+plt.ylabel('Frequency')
+
+##Stacked bars (same categoricals as above)
+#CAN I DO A FULL PROPORTION PLOT, where X-axis is also taken into account?
+
+badloan_grade = pd.crosstab(LendingClub.grade, LendingClub.bad_loans)
+badloan_grade.div(badloan_grade.sum(1).astype(float), axis=0).plot(kind='bar', stacked=True)
+plt.title('Bad Loan % by Loan Grade')
+plt.xlabel('Loan Grade')
+plt.ylabel('Percentage')
+
+badloan_term = pd.crosstab(LendingClub.term, LendingClub.bad_loans)
+badloan_term.div(badloan_term.sum(1).astype(float), axis=0).plot(kind='bar', stacked=True)
+plt.title('Bad Loan % by Loan Term')
+plt.xlabel('Loan Term')
+plt.ylabel('Percentage')
+
+badloan_emp_length = pd.crosstab(LendingClub.emp_length, LendingClub.bad_loans)
+badloan_emp_length.div(badloan_emp_length.sum(1).astype(float), axis=0).plot(kind='bar', stacked=True)
+plt.title('Bad Loan % by Number Years Employed')
+plt.xlabel('Number Years Employed')
+plt.ylabel('Percentage')
+
+badloan_home_ownership = pd.crosstab(LendingClub.home_ownership, LendingClub.bad_loans)
+badloan_home_ownership.div(badloan_home_ownership.sum(1).astype(float), axis=0).plot(kind='bar', stacked=True)
+plt.title('Bad Loan % by Home Ownership Status')
+plt.xlabel('Home Ownership Status')
+plt.ylabel('Percentage')
+
+#Loan Amounts by Loan Outcome
+LendingClub.pivot_table(index='loan_status',
+                                    values='loan_amnt', aggfunc=np.mean).plot(kind='bar', color='blue')
+plt.xlabel('Loan Status')
+plt.ylabel('Average Loan Amount ($K)')
+plt.xticks(rotation=0)
 plt.show()
 
-##Multivariate visualization
+#Loan Amounts by Home Ownership
+LendingClub.pivot_table(index='home_ownership',
+                                    values='loan_amnt', aggfunc=np.mean).plot(kind='bar', color='blue')
+plt.xlabel('Home Ownership Status')
+plt.ylabel('Average Loan Amount ($K)')
+plt.xticks(rotation=0)
+plt.show()
 
 ##Plots against the business problem, what is the impact of the bad loans?  What would happen if
 ##the loans were removed?  Recovery fees, etc.
 
-##Proportion plots (hard to figure out how to do in Python)
+
 
 ##ANOVA testing
 
 ##Other t-testing
 
 ##Principal Components Analysis
-pca = PCA(n_components=2)
+pca = PCA(X_pca)
 pca.fit(X_pca,y)
 pca.explained_variance_
+
+dataMatrix = np.array(LendingClub)   
+myPCA = PCA(dataMatrix) 
 
 ##

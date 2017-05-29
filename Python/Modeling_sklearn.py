@@ -1,24 +1,32 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.decomposition import PCA
+from collections import Counter
+import seaborn as sns
+from matplotlib.mlab import PCA
+import statsmodels.api as sm
+import pylab as pl
+
 #Read in the cleaned dataset (ensure the data types match)
 
 
 #Create the independent (X) and dependent (y) vectors
-X = LendingClub0711.iloc[:,LendingClub0711.columns != 'bad_loans']#.values
-y = LendingClub0711.iloc[:,LendingClub0711.columns == 'bad_loans']#.values
+X = LendingClub.iloc[:,LendingClub.columns != 'bad_loans']#.values
+y = LendingClub.iloc[:,LendingClub.columns == 'bad_loans']#.values
 
-X_numeric = numeric_features.iloc[:,numeric_features.columns != 'bad_loans']#.values
-y_numeric = numeric_features.iloc[:,numeric_features.columns == 'bad_loans']#.values
+#X_numeric = numeric_features.iloc[:,numeric_features.columns != 'bad_loans']#.values
+#y_numeric = numeric_features.iloc[:,numeric_features.columns == 'bad_loans']#.values
 
-X = pd.DataFrame(X)
-y = pd.DataFrame(y)
+#X = pd.DataFrame(X)
+#y = pd.DataFrame(y)
 
 #Splitting the dataset into training and test
 from sklearn.cross_validation import train_test_split
 X_train, X_test, y_train, y_test  = train_test_split(X,y,test_size=0.2, random_state=123)
 
-X_train, X_test, y_train, y_test  = train_test_split(X_numeric,y_numeric,test_size=0.2, random_state=123)
 
 #Feature scaling
-"""
 list(X_train.select_dtypes(include=[np.number]).columns.values)
 
 for y in X_train.columns:
@@ -32,7 +40,7 @@ X_train = sc_X.fit_transform(X_train)
 X_test = sc_X.transform(X_test)
 sc_y = StandardScaler()
 y_train = sc_y.fit_transform(y_train)
-"""
+
 
 #Fitting Logistic Regression Model to the Training Set
 from sklearn.linear_model import LogisticRegression
@@ -106,4 +114,3 @@ plt.xlabel('Age')
 plt.ylabel('Estimated Salary')
 plt.legend()
 plt.show()
-
