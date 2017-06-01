@@ -1,4 +1,18 @@
+#Lending Club Analysis
 
+#Eric Jenvey
+
+#The following code is the third in a series of files that processes, visualizes, and models publicly available data from
+#a peer-to-peer lending company called Lending Club.  The purpose of the analysis is to predict the probability that a loan goes
+#into default, using only the data we know about the loan and the borrower at the time the loan is requested.
+
+#This file builds both a Logistic Regression and Decision Tree model to predict 
+#the probability of loan default, then evaluates these models using classic evaluation 
+#metrics, Precision and Recall.  Future work here will include improving the models 
+#as well as employing a set of other classification models.
+
+#I would like to give credit to Andrew Bruce for some of the general framework of this analysis, his post about this dataset +
+#analysis can be found at https://turi.com/learn/gallery/notebooks/predict-loan-default.html
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,6 +24,7 @@ from matplotlib.mlab import PCA
 import statsmodels.api as sm
 import pylab as pl
 import math
+import sklearn.metrics as metric
 
 #Read in the cleaned dataset (ensure the data types match)
 LendingClub = pd.read_csv("/Users/ejenvey/Desktop/Lending Club Data and Analysis/LoanStats_keycols_cleaned.csv")
@@ -18,8 +33,8 @@ LendingClub = pd.read_csv("/Users/ejenvey/Desktop/Lending Club Data and Analysis
 LendingClub['intercept'] = 1.0
 
 #Create the independent (X) and dependent (y) vectors
-X = LendingClub.iloc[:,LendingClub.columns != 'bad_loans']#.values
-y = LendingClub.iloc[:,LendingClub.columns == 'bad_loans']#.values
+X = LendingClub.iloc[:,LendingClub.columns != 'bad_loans'].values
+y = LendingClub.iloc[:,LendingClub.columns == 'bad_loans'].values
 
 
 #Splitting the dataset into training and test
@@ -53,36 +68,39 @@ for i in y_pred:
         y_pred_binary.append(0)
 
 #Creating a confusion matrix
-import sklearn.metrics as metric
-cm = confusion_matrix(y_test,y_pred_binary)
+cm_logit = confusion_matrix(y_test,y_pred_binary)
 
 #Calculate Precision/Recall to measure the model
 
 #Precision = TruePositive/(TruePositive + FalsePositive)
-metric.precision_score(y_test,y_pred_binary)
+logit_precision = metric.precision_score(y_test,y_pred_binary)
 
 #Recall = TruePositive/(TruePositive + FalseNegative)
-metric.recall_score(y_test,y_pred_binary)
+logit_recall = metric.recall_score(y_test,y_pred_binary)
 
 #-----Model Improvement--------
 #The above model is fairly poor, noted by its low recall and middling precision
 
 LendingClub = LendingClub.drop(['grade_B','grade_C', 'grade_D', 'grade_E', 'grade_F', 'grade_G'], axis=1)
 
-"""
-#Feature scaling
-list(X_train.select_dtypes(include=[np.number]).columns.values)
+#----Decision Tree Classification-------
+# Fitting the Decision Tree Classifier to the Training Set
+from sklearn.tree import DecisionTreeClassifier
+classifier = DecisionTreeClassifier(criterion="entropy",random_state=0)
+classifier.fit(X_train,y_train)
 
-for y in X_train.columns:
-    print X_train[y].dtype
+#Predict the Test set results
+y_pred = classifier.predict(X_test)
 
-X_train.apply(pd.to_numeric)
+#Creating a confusion matrix
+cm_decisiontree = confusion_matrix(y_test,y_pred)
 
-from sklearn.preprocessing import StandardScaler
-sc_X = StandardScaler()
-X_train = sc_X.fit_transform(X_train)
-X_test = sc_X.transform(X_test)
-sc_y = StandardScaler()
-y_train = sc_y.fit_transform(y_train)
-"""
+#Calculate Precision/Recall to measure the model
+
+#Precision = TruePositive/(TruePositive + FalsePositive)
+decisiontree_precision = metric.precision_score(y_test,y_pred)
+
+#Recall = TruePositive/(TruePositive + FalseNegative)
+decisiontree_recall = metric.recall_score(y_test,y_pred)
+
 
