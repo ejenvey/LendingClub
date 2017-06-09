@@ -27,7 +27,7 @@ import math
 import sklearn.metrics as metric
 
 #Read in the cleaned dataset (ensure the data types match)
-LendingClub = pd.read_csv("/Users/ejenvey/Desktop/Lending Club Data and Analysis/LoanStats_keycols_cleaned.csv")
+LendingClub = pd.read_csv("LoanStats_keycols_cleaned.csv")
 
 
 LendingClub['intercept'] = 1.0

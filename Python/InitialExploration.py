@@ -1,3 +1,18 @@
+#Lending Club Analysis
+
+#Eric Jenvey
+
+#The following code is the second in a series of files that processes, visualizes, and models publicly available data from
+#a peer-to-peer lending company called Lending Club.  The purpose of the analysis is to predict the probability that a loan goes
+#into default, using only the data we know about the loan and the borrower at the time the loan is requested.
+
+#This file does some exploratory plotting, and begins on some more traditional 
+#Exploratory Data Analysis, like PCA and Hypothesis Testing.
+
+#I would like to give credit to Andrew Bruce for some of the general framework of this analysis, his post about this dataset +
+#analysis can be found at https://turi.com/learn/gallery/notebooks/predict-loan-default.html
+
+
 # Initial Exploration of the Data
 
 #Importing the libraries
@@ -12,7 +27,11 @@ import statsmodels.api as sm
 import pylab as pl
 
 #Importing the dataset
-LendingClub = pd.read_csv("/Users/ejenvey/Desktop/Lending Club Data and Analysis/LoanStats_keycols_cleaned.csv")
+LendingClub = pd.read_csv("LoanStats_keycols_cleaned.csv")
+
+#select only the numeric features, for numeric plotting and PCA
+numeric_features = LendingClub.select_dtypes(include=[np.number])
+numeric_features['bad_loans'] = LendingClub.bad_loans
 
 #------Data Exploration---------#
 
@@ -30,11 +49,18 @@ sns.heatmap(corr, xticklabels=corr.columns,yticklabels=corr.columns)
 #highlights: number of open accounts is correlated with acc_open_past_24_mths
 #also, credit limit is correlated with annual income & revolving balance
 
-
+##Principal Components Analysis
 
 X_pca = LendingClub.loc[:,['loan_amnt', 'installment', 'int_rate', 'annual_inc',
                                'dti']]
 y = LendingClub.bad_loans
+
+pca = PCA(X_pca)
+pca.fit(X_pca,y)
+pca.explained_variance_
+
+dataMatrix = np.array(LendingClub)   
+myPCA = PCA(dataMatrix) 
 
 #For some plots, split the data frame into bad loans and good loans
 LendingClub0711bad = LendingClub[LendingClub['bad_loans']==0]
@@ -123,7 +149,6 @@ plt.xlabel('Home Ownership Status')
 plt.ylabel('Frequency')
 
 ##Stacked bars (same categoricals as above)
-#CAN I DO A FULL PROPORTION PLOT, where X-axis is also taken into account?
 
 badloan_grade = pd.crosstab(LendingClub.grade, LendingClub.bad_loans)
 badloan_grade.div(badloan_grade.sum(1).astype(float), axis=0).plot(kind='bar', stacked=True)
@@ -165,21 +190,9 @@ plt.ylabel('Average Loan Amount ($K)')
 plt.xticks(rotation=0)
 plt.show()
 
-##Plots against the business problem, what is the impact of the bad loans?  What would happen if
-##the loans were removed?  Recovery fees, etc.
+
+##ANOVA testing (future development)
+
+##Other t-testing (future development)
 
 
-
-##ANOVA testing
-
-##Other t-testing
-
-##Principal Components Analysis
-pca = PCA(X_pca)
-pca.fit(X_pca,y)
-pca.explained_variance_
-
-dataMatrix = np.array(LendingClub)   
-myPCA = PCA(dataMatrix) 
-
-##
