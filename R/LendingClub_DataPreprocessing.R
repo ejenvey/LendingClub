@@ -2,23 +2,27 @@
 
 # Eric Jenvey
 
-source("multiplot.R")
+#I would like to give credit to Andrew Bruce for some of the general framework of this analysis, his post about this dataset +
+#analysis can be found at https://turi.com/learn/gallery/notebooks/predict-loan-default.html
 
+source("multiplot.r")
+
+library(plyr)
 library(dplyr)
 library(ggplot2)
 library(SDMTools)
 library(ROCR)
 library(lattice)
-library(plyr)
 library(reshape2)
 
 
 # create df, data types and examples of complete entries
 
-# Reading from a locally created file, more pre-processing steps were necessary, but
-# leaving those out of the script for now
-loans <- read.csv("loanStats.csv")
-loans_complete <- loans[complete.cases(loans),]
+# Reading from file created by Andrew Bruce, some preprocessing was required for this file, 
+# which includes removing unnecessary columns and combining multiple years.  The Python version of this 
+# walkthrough does this preprocessing on its own.
+
+loans <- read.csv("https://static.turi.com/datasets/lending_club/loanStats.csv")
 
 # recode non-numeric values as factors
 loans$id <- as.factor(loans$id)

@@ -4,8 +4,17 @@
 
 # Use LendingClub_DataPreprocessing.R to read and clean the data
 
-# LendingClub_EDA and LendingClub_HypothesisTesting store the code to generate
-# visualizations, other EDA, and univariate/multivariate statistical tests on the data
+# LendingClub_EDA stores the code to generate visualizations, other EDA
+
+source("multiplot.r")
+
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(SDMTools)
+library(ROCR)
+library(lattice)
+library(reshape2)
 
 set.seed(123)
 
@@ -41,35 +50,14 @@ par(mfrow = c(1,1))
 
 summary(loansModel)
 
-# log transformed data model
-
-logLoans <- loans_inactive
-
-logLoans[, c("loan_amnt", "annual_inc", "dti", "payment_inc_ratio", "revol_util", "total_rec_late_fee")] <- log(loans_inactive[, c("loan_amnt", "annual_inc", "dti", "payment_inc_ratio", "revol_util", "total_rec_late_fee")] + .0001)
-logLoans$bad_loans <- loans_inactive$bad_loans
-
-log.trainSet <- logLoans[sample,]
-log.testSet <- logLoans[-sample,]
-log_bad_test <- log.testSet[log.testSet$status=="Charged Off"|log.testSet$status=="Default",]
-
-
-loansModel2 <- glm(bad_loans ~ grade + sub_grade_num + emp_length_num + home_ownership + dti + purpose 
-                   + payment_inc_ratio + open_acc + loan_amnt + annual_inc + revol_util + total_rec_late_fee, family = binomial, data=log.trainSet,na.action = na.omit) 
-
-par(mfrow = c(2,2))
-plot(loansModel2,labels.id = NULL)
-par(mfrow = c(1,1))
-
-summary(loansModel2)
-
 ## Model Validation
 
-### ANOVA test of models
-
-anova(loansModel, loansModel2, test="Chisq")
-
-### Confusion Matrix
-
+### Confusion Matrices testing different cutoffs for our prediction. The cutoff corresponds to the probability
+# that we are comfortable with classifying a loan as a defaulted loan. A higher cutoff means that we will only 
+# predict the default if the probability of default is high (this can generally be thought of as a risk-tolerant 
+# strategy, because we are allowing more loans through the system). 
+# A lower cutoff therefore would be a risk-averse strategy, we only want the very best loans to come through
+# the site.
 
 fitted.results <- predict(loansModel, newdata=testSet, type="response")
 fitted.results <- ifelse(fitted.results > 0.5, 1, 0)
@@ -94,53 +82,21 @@ misClasificError <- mean(fitted.results != testSet$bad_loans, na.rm=TRUE)
 c3 <- confusion.matrix(testSet$bad_loans,fitted.results)
 c3[1:2,1:2]
 
-# log'd logit
-log.results <- predict(loansModel2, newdata=log.testSet, type="response")
-log.results <- ifelse(log.results > 0.5, 1, 0)
-misClasificError <- mean(log.results != log.testSet$bad_loans, na.rm=TRUE)
+### ROC Curve
 
-c2 <- confusion.matrix(log.testSet$bad_loans,log.results)
-c2[1:2,1:2]
-
-# 25%**
-log.results <- predict(loansModel2, newdata=log.testSet, type="response")
-log.results <- ifelse(fitted.results > 0.25, 1, 0)
-misClasificError <- mean(log.results != log.testSet$bad_loans, na.rm=TRUE)
-
-c2 <- confusion.matrix(log.testSet$bad_loans,log.results)
-c2[1:2,1:2]
-
-# 75%**
-log.results <- predict(loansModel2, newdata=log.testSet, type="response")
-log.results <- ifelse(log.results > 0.75, 1, 0)
-misClasificError <- mean(log.results != testSet$bad_loans, na.rm=TRUE)
-
-c2 <- confusion.matrix(log.testSet$bad_loans,log.results)
-c3[1:2,1:2]
-
-### ROC Curves for both options
-
-m <- matrix(data=c(0,0,1,1),nrow=2,ncol=2,byrow=TRUE)
-
-plot(m,xlim=c(0,1),ylim=c(0,1), xlab="False positive rate",ylab="True positive rate",type="l")
-points(.2,.2,pch=19)
-
+library(ROCR)
 fitted.results <- predict(loansModel, newdata=testSet, type="response")
 pr <- prediction(fitted.results, testSet$bad_loans)
 prf <- performance(pr, measure = "tpr", x.measure = "fpr")
-
-log.results <- predict(loansModel2, newdata=log.testSet, type="response")
-lpr <- prediction(log.results, log.testSet$bad_loans)
-lprf <- performance(lpr, measure = "tpr", x.measure = "fpr")
-
 plot(prf)
 lines(c(0,1),c(0,1))
-plot(lprf, add = TRUE, colorize = TRUE)
 
-points(.2,.2,pch=19,col="Forest Green")
-points(.05,.2,pch=19,col="Red")
+#the above ROC curve shows improvement over a "random" model that selects loans to go through the site without
+#considering any of the data characteristics that we are selecting today. A random model is, in essence, what
+#is being employed at Lending Club currently. The further our model's curve above the random line, the more
+#predictive it is of the result.
 
-### Conclusion (using Eric's model)
+### Conclusion (if the model was employed, what impact would it have had?)
 
 lbls_recoveries <- c(sprintf("Saved Recoveries - $%s", prettyNum(sum(loans_bad$recoveries)*.2,big.mark=",")),sprintf("Remaining Recoveries - $%s", prettyNum(sum(loans_bad$recoveries)*.8,big.mark=",")))
 

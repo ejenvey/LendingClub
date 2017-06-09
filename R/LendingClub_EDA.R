@@ -4,14 +4,14 @@
 
 # Use LendingClub_DataPreprocessing.R to read and clean the data
 
-source("multiplot.R")
+source("multiplot.r")
 
+library(plyr)
 library(dplyr)
 library(ggplot2)
 library(SDMTools)
 library(ROCR)
 library(lattice)
-library(plyr)
 library(reshape2)
 
 ### Descriptive statistics
@@ -33,15 +33,15 @@ qplot(loans_inactive$home_ownership, xlab = "Home Ownership Catergory",ylab = "N
 
 # Kernel Density Plot
 d <- density(loans_inactive$int_rate) # returns the density data for a variable
-plot(d) # plots the results
+plot(d, main="Density plot of interest rate") # plots the results
 
 # Univarate plots - box and whisker plots (ability to see distribution of the continuous variables/outliers)
 
-bwplot(~loan_amnt, data = loans_inactive, main = "Box Plots of Loan Amounts", xlab = "Loan Amount ($)")
-bwplot(~int_rate, data = loans_inactive, main = "Box Plots of Interest Rates", xlab = "Interest Rates (%)")
-bwplot(~dti, data = loans_inactive, main = "Box Plots of DTI", xlab = "DTI")
-bwplot(~payment_inc_ratio, data = loans_inactive, main = "Box Plots of Payment to Inc Ratio", xlab = "Payment to Inc Ratio")
-bwplot(~annual_inc, data = loans_inactive, main = "Box Plots of Annual Income", xlab = "Annual Income ($)")
+bwplot(~loan_amnt, data = loans_inactive, main = "Box Plot of Loan Amounts", xlab = "Loan Amount ($)")
+bwplot(~int_rate, data = loans_inactive, main = "Box Plot of Interest Rates", xlab = "Interest Rates (%)")
+bwplot(~dti, data = loans_inactive, main = "Box Plot of DTI", xlab = "DTI")
+bwplot(~payment_inc_ratio, data = loans_inactive, main = "Box Plot of Payment to Income Ratio", xlab = "Payment to Income Ratio")
+boxplot(loans_inactive$annual_inc, main = "Box Plot of Annual Income (outliers removed)", xlab = "Annual Income ($)", outline=FALSE)
 
 # multivariate visualizations
 
@@ -57,6 +57,8 @@ bwplot(bad_loans~loan_amnt, data = loans, main = "Borrower Income by Loan Status
 # What does the bottom line look like, where are we trying to affect change? $ spend on Recovering bad loans 
 
 # what does the cost of bad loans look like: in loan value and recovery cost?
+# manual calculations needed here; the goal being to develop a visualization that shows the potential value
+# of this default detection algorithm
 lbls_recoveries <- sprintf("Recoveries - $%s", prettyNum(sum(loans_bad$recoveries),big.mark=","))
 
 lbls_loanAmount = sprintf("Bad Loans - $%s", prettyNum(sum(loans_bad$loan_amnt),big.mark=","))
@@ -100,7 +102,7 @@ d
 
 #Principal Components Analysis
 
-# create factors out of loanee characteristics
+# create factors out of borrower characteristics
 loans_inactive$addr_state <- as.factor(loans_inactive$addr_state)
 loans_inactive$home_ownership <- as.factor(loans_inactive$home_ownership)
 loans_inactive$is_inc_v <- as.factor(loans_inactive$is_inc_v)
